@@ -1,3 +1,3 @@
 # MMCTP1
 
-## First homework in progress: Newton iteration
+## First homework solved: Newton iteration - Under folder HW1
