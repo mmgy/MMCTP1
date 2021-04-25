@@ -4,6 +4,7 @@
 #include <algorithm>
 #include <fstream>
 
+//Euler solver. Returns a vector.
 template<typename State, typename T, typename RHS, typename Callback>
 auto solve_euler(State y0, T t0, T t1, T h, RHS f, Callback cb)
 {
@@ -25,6 +26,7 @@ auto solve_euler(State y0, T t0, T t1, T h, RHS f, Callback cb)
     return data;
 }
 
+//Runge-Kutta 4 solver. Returns a vector.
 template<typename State, typename T, typename RHS, typename Callback>
 auto solve_rk4(State y0, T t0, T t1, T h, RHS f, Callback cb)
 {
@@ -51,12 +53,14 @@ auto solve_rk4(State y0, T t0, T t1, T h, RHS f, Callback cb)
     return data;
 }
 
+//Right hand side of the ODE.
 template<typename T, typename State>
 auto rhs(T t, State y)
 {
     return 1 + y*y;
 }
 
+//Callback function to run in each solver step.
 template<typename T, typename State>
 void callback(T t, State y)
 {
@@ -64,7 +68,7 @@ void callback(T t, State y)
     return;
 }
 
-
+//Analytic solution of the ODE.
 template<typename T, typename State>
 auto analytic_sol(State y0, T t0, T t, T h)
 {
@@ -76,6 +80,7 @@ auto analytic_sol(State y0, T t0, T t, T h)
     return data;
 }
 
+//Function that writes the Euler, Runge-Kutta 4 and the analytic solutions into a file as three separate columns.
 template<typename State>
 void vecs_to_file(std::string file_name, std::vector<std::vector<State>> vecs, int idx_of_analytic_data)
 {
@@ -100,6 +105,7 @@ void vecs_to_file(std::string file_name, std::vector<std::vector<State>> vecs, i
 
 int main(int, char**) {
 
+    //Set initial conditions, the time to which we evolve and the step length.
     double y0 = 0.; double t0 = 0.; double t = 1.57; double h = 0.001;
     
     auto y_rk = solve_rk4(y0, t0, t, h, rhs<double, double>, callback<double, double>);
@@ -109,7 +115,8 @@ int main(int, char**) {
     auto data = analytic_sol(y0, t0, t, h);
 
     std::vector<std::vector<double>> vecs{y_e, y_rk, data};
-
+    
+    //Give file name
     std::string str("solution.txt");
 
     vecs_to_file(str, vecs, 2);
