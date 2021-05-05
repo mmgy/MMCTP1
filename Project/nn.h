@@ -204,17 +204,14 @@ nn_out<T> forward_propagation(std::vector<T> const& input, std::vector<layer_wei
         {
             curr_input = sigmoid(lin_output);
         }
-        //std::cout << lin_output[0] << std::endl;
 
         forward_element.push_back(prev_input);
         forward_element.push_back(lin_output);
         forward.push_back(forward_element);
     }
 
-    //std::cout << "\n End of layers \n" << std::endl;
     nn_out<T> prop_out;
     prop_out.output = curr_input;
-    //std::cout << curr_input[0] << "\n" << std::endl;
     prop_out.forward = forward;
 
     return prop_out;
@@ -275,18 +272,11 @@ std::vector<T> transpose(std::vector<T> const& M, int const& row_size)
 template<typename T>
 std::vector<T> lin_trf(layer_weights<T> const& layer, std::vector<T> const& x)
 {
-    /*for(int l = 0; l < x.size(); l++)
-    {
-        std::cout << x[l] << std::endl;
-    }
-    std::cout << "\n" << std::endl;*/
-    //std::cout << layer.W[0] << std::endl;
     std::vector<T> result;
     for(int i = 0; i < (static_cast<int>(layer.W.size()) / static_cast<int>(x.size())); i++)
     {
         std::vector<T> w = std::vector<T>(layer.W.begin() + i*static_cast<int>(x.size()), layer.W.begin() + (i+1)*static_cast<int>(x.size()));
         result.push_back(dotProduct(w, x) + layer.b[i]);
-        //std::cout << dotProduct(w, x) << std::endl;
     }
     return result;
 }
@@ -309,11 +299,9 @@ std::vector<T> dRMSE(std::vector<T> const& y_hat, std::vector<T> const& y)
     std::vector<T> result;
     int n = static_cast<int>(y.size());
     T rmse = RMSE(y_hat, y);
-    //std::cout << rmse << std::endl;
     for(int i = 0; i < n; i++)
     {
         result.push_back((y_hat[i] - y[i]) / n / (rmse + EPS));
-        //std::cout << (y_hat[i] - y[i]) / n << std::endl;
     }
     return result;
 }
@@ -322,14 +310,10 @@ template<typename T>
 backprop_out<T> single_layer_backprop(std::vector<T> const& d_curr, std::vector<T> const& W_curr, std::vector<T> const& b_curr, std::vector<T> const& lin_output, 
                                       std::vector<T> const& prev_input, std::function<std::vector<T>(std::vector<T> const&, std::vector<T> const&)> backward_activation)
 {
-    //std::cout << static_cast<int>(d_curr.size()) << std::endl;
     std::vector<T> d_lin_output = backward_activation(d_curr, lin_output);
-    //std::cout << static_cast<int>(d_lin_output.size()) << std::endl;
 
     std::vector<T> dW_curr = diadicProduct(d_lin_output, prev_input);
     std::vector<T> db_curr = d_lin_output;
-    //std::cout << static_cast<int>(W_curr.size()) / static_cast<int>(d_lin_output.size()) << std::endl;
-    //std::cout << static_cast<int>(transpose(W_curr, static_cast<int>(W_curr.size()) / static_cast<int>(d_lin_output.size())).size()) << std::endl;
     std::vector<T> d_prev = matrix_dot_vector(transpose(W_curr, static_cast<int>(W_curr.size()) / static_cast<int>(d_lin_output.size())), d_lin_output);
 
     backprop_out<T> single_layer_backprop_out;
@@ -346,7 +330,6 @@ std::vector<layer_weights<T>> full_backprop(std::vector<T> const& y_hat, std::ve
 {
     std::vector<layer_weights<T>> grads;
     std::vector<T> d_prev = dRMSE(y_hat, y);
-    //std::cout << static_cast<int>(y.size()) << std::endl;
     
     int n = static_cast<int>(nn_architecture.size());
     for(int i = 0; i < n; i++)
@@ -362,12 +345,9 @@ std::vector<layer_weights<T>> full_backprop(std::vector<T> const& y_hat, std::ve
             backward_activation = ReLU_back<T>;
         }else if(nn_architecture[i].activation == "sigmoid")
         {
-            //Backward_Activation backward_activation = sigmoid_back;
             backward_activation = sigmoid_back<T>;
         }
-        //std::cout << static_cast<int>(d_prev.size()) << std::endl;
         std::vector<T> d_curr = d_prev;
-        //std::cout << static_cast<int>(d_curr.size()) << std::endl;
         
         std::vector<T> prev_input = forward[n - i - 1][0];
         std::vector<T> lin_output = forward[n - i - 1][1];
@@ -393,13 +373,11 @@ std::vector<layer_weights<T>> update(std::vector<layer_weights<T>>& network_para
         for(int j = 0; j < static_cast<int>(network_params[i].W.size()); j++)
         {
             network_params[i].W[j] -= learning_rate * grads[n - i - 1].W[j];
-            //std::cout << grads[n - i - 1].W[j] << std::endl;
         }
         for(int k = 0; k < static_cast<int>(network_params[i].b.size()); k++)
         {
             network_params[i].b[k] -= learning_rate * grads[n - i - 1].b[k];
         }
-        //std::cout << "\n" << std::endl;
     }
     return network_params;
 }
@@ -439,21 +417,11 @@ train_step_out<T> train_step(std::vector<std::vector<T>> const& Xs, std::vector<
     train_step_out<T> train_step_output;
     T costs = 0;
     std::vector<std::vector<layer_weights<T>>> grads_batch;
-    //std::cout << static_cast<int>(Xs.size()) << std::endl;
    
     for(int i = 0; i < static_cast<int>(Xs.size()); i++)
     {
          nn_out<T> forward_out = forward_propagation(Xs[i], network_params, nn_architecture);
-        /*
-        for(int l = 0; l < forward_out.output.size(); l++)
-        {
-            std::cout << forward_out.output[l] << std::endl;
-        }
-        std::cout << "\n" << std::endl;*/
-        //std::cout << forward_out.output[0] << " " << Y[0] << std::endl;
-        //std::cout << static_cast<int>(Ys[i].size()) << std::endl;
         T cost = RMSE(forward_out.output, Ys[i]);
-        //std::cout << cost << std::endl;
         costs += cost / static_cast<int>(Xs.size());
         
 
@@ -469,7 +437,6 @@ train_step_out<T> train_step(std::vector<std::vector<T>> const& Xs, std::vector<
     std::cout << "\n" << std::endl;*/
     train_step_output.cost = costs;
     train_step_output.network_params = network_params;
-    //std::cout << "\n" << std::endl;
 
     return train_step_output;
 }
@@ -479,9 +446,10 @@ std::vector<T> point_predict(std::vector<T> const& X, std::vector<layer_weights<
                              std::vector<T> const& bounds)
 {
     T low = bounds[0]; T high = bounds[1]; T min = bounds[2]; T max = bounds[3];
-    std::vector<T> X_scaled = MinMaxScaler(X, low, high);
+    T scaled_data_min = bounds[4]; T scaled_data_max = bounds[5]; T scaled_target_min = bounds[6]; T scaled_target_max = bounds[7];
+    std::vector<T> X_scaled = MinMaxScaler(X, low, high, scaled_data_min, scaled_data_max);
     nn_out<T> forward_out = forward_propagation(X_scaled, network_params, nn_architecture);
-    return invMinMaxScaler(forward_out.output, min, max);
+    return invMinMaxScaler(forward_out.output, min, max, scaled_target_min, scaled_target_max);
 }
 
 template<typename T>
@@ -553,12 +521,6 @@ train_out<T> train(std::vector<std::vector<T>> const& train_data, std::vector<T>
     {
         train_target_vectorized.push_back(std::vector<T>{train_target[p]});
     }
-    //std::cout << static_cast<int>(train_target_vectorized[1].size()) << std::endl;
-    /*
-    for(int l = 0; l < network_params[1].W.size(); l++)
-    {
-        std::cout << network_params[1].W[l] << std::endl;
-    }*/
     for(int i = 0; i < num_epoch; i++)
     {
         T cost_epoch_mean = 0;
@@ -580,7 +542,6 @@ train_out<T> train(std::vector<std::vector<T>> const& train_data, std::vector<T>
                 Xs = std::vector<std::vector<T>>(train_data.begin() + j * batch_size, train_data.begin() + (j + 1) * batch_size);
                 Ys = std::vector<std::vector<T>>(train_target_vectorized.begin() + j * batch_size, train_target_vectorized.begin() + (j + 1) * batch_size);
             }
-            //std::cout << j + 1 << std::endl;
             train_step_output = train_step(Xs, Ys, network_params, learning_rate * pow(gamma, -i / milestone), nn_architecture);
             if(j == 0)
             {
@@ -636,16 +597,16 @@ std::vector<T> MinMaxScaler(std::vector<T> const& data, T const& data_min, T con
 template<typename T>
 class Preprocess
 {
-    T low, high, resolution, min, max;
+    T low, high, resolution, min, max, scaled_data_min, scaled_data_max, scaled_target_min, scaled_target_max;
     std::function<T(T const&)> function;
 
-    struct Dataset
-    {
-        std::vector<std::vector<T>> train_data;
-        std::vector<T> train_target;
-    };
-
     public:
+        typedef struct Dataset
+        {
+            std::vector<std::vector<T>> data;
+            std::vector<T> target;
+        }Dataset;
+
         Dataset dataset;
 
         void setProcess(std::function<T(T const&)> set_function, T const& set_low, T const& set_high, T const& set_resolution)
@@ -654,52 +615,41 @@ class Preprocess
             high = set_high;
             resolution = set_resolution;
             function = set_function;
-            /*int n = (int)((high - low) / resolution);
-            if(n * resolution != high - low)
-            {
-                n += 1;
-            }
-            for(int i = 1; i <= n; i++)
-            {   
-                if(i == n)
-                {
-                    std::vector<T> train_point{high};
-                    Dataset.train_target.push_back(function(train_point[0]));
-                    Dataset.train_data.push_back(train_point);
-                }else
-                {
-                    std::vector<T> train_point{low + i * resolution};
-                    Dataset.train_target.push_back(function(train_point[0]));
-                    Dataset.train_data.push_back(train_point);
-                }
-            }*/
             Dataset set_dataset = generate_points(low, high, resolution);
-            auto result = std::minmax_element(set_dataset.train_target.begin(), set_dataset.train_target.end());
+            auto result = std::minmax_element(set_dataset.target.begin(), set_dataset.target.end());
             min = *result.first;
             max = *result.second;
-            std::shuffle(set_dataset.train_data.begin(), set_dataset.train_data.end(), std::default_random_engine());
-            std::shuffle(set_dataset.train_target.begin(), set_dataset.train_target.end(), std::default_random_engine());
+            std::shuffle(set_dataset.data.begin(), set_dataset.data.end(), std::default_random_engine());
+            std::shuffle(set_dataset.target.begin(), set_dataset.target.end(), std::default_random_engine());
             dataset = set_dataset;
+            scaled_data_min = low;
+            scaled_data_max = high;
+            scaled_target_min = min;
+            scaled_target_max = max;
         }
 
-        std::vector<std::vector<T>> data_scaled()
+        std::vector<std::vector<T>> data_scaled(T const& set_scaled_data_min = 0, T const& set_scaled_data_max = 1)
         {   
-            return MinMaxScaler(dataset.train_data, low, high);
+            scaled_data_min = set_scaled_data_min;
+            scaled_data_max = set_scaled_data_max;
+            return MinMaxScaler(dataset.data, low, high, scaled_data_min, scaled_data_max);
         }
 
-        std::vector<T> target_scaled()
+        std::vector<T> target_scaled(T const& set_scaled_target_min = 0, T const& set_scaled_target_max = 1)
         {
-            return MinMaxScaler(dataset.train_target, min, max);
+            scaled_target_min = set_scaled_target_min;
+            scaled_target_max = set_scaled_target_max;
+            return MinMaxScaler(dataset.target, min, max, scaled_target_min, scaled_target_max);
         }
 
         std::vector<std::vector<T>> data()
         {
-            return dataset.train_data;
+            return dataset.data;
         }
 
         std::vector<T> target()
         {
-            return dataset.train_target;
+            return dataset.target;
         }
 
         std::vector<T> get_bounds()
@@ -709,13 +659,17 @@ class Preprocess
             bounds.push_back(high);
             bounds.push_back(min);
             bounds.push_back(max);
+            bounds.push_back(scaled_data_min);
+            bounds.push_back(scaled_data_max);
+            bounds.push_back(scaled_target_min);
+            bounds.push_back(scaled_target_max);
             return bounds;
         }
 
-        typename Dataset generate_points(T const& set_low, T const& set_high, T const& set_resolution)
+        Dataset generate_points(T const& set_low, T const& set_high, T const& set_resolution)
         {
-            std::vector<std::vector<T>> data;
-            std::vector<T> target;
+            std::vector<std::vector<T>> generated_data;
+            std::vector<T> generated_target;
             Dataset generated_dataset;
             int n = (int)((set_high - set_low) / set_resolution);
             if(n * set_resolution != set_high - set_low)
@@ -727,17 +681,17 @@ class Preprocess
                 if(i == n)
                 {
                     std::vector<T> train_point{set_high};
-                    target.push_back(function(train_point[0]));
-                    data.push_back(train_point);
+                    generated_target.push_back(function(train_point[0]));
+                    generated_data.push_back(train_point);
                 }else
                 {
-                    std::vector<T> train_point{low + i * resolution};
-                    target.push_back(function(train_point[0]));
-                    data.push_back(train_point);
+                    std::vector<T> train_point{set_low + i * set_resolution};
+                    generated_target.push_back(function(train_point[0]));
+                    generated_data.push_back(train_point);
                 }
             }
-            generated_dataset.train_data = data;
-            generated_dataset.train_target = target;
+            generated_dataset.data = generated_data;
+            generated_dataset.target = generated_target;
             return generated_dataset;
         }
 };
