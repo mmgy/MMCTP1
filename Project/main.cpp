@@ -2,36 +2,76 @@
 
 int main(int, char**) {
 
+    //The layers and their features must be defined first. Number of inputs, number of outputs and the name of the activation function.
+    //Each layer defined that way is a config object, a class I defined in the nn.h header file.
     config layer1{1, 16, "sigmoid"};
     config layer2{16, 64, "relu"};
-    config layer3{64, 1, "relu"};
+    config layer3{64, 16, "relu"};
+    //config layer4{256, 128, "relu"};
+    config layer5{16, 1, "relu"};
 
-    std::vector<config> nn_architecture{layer1, layer2, layer3};
+    //The architecture of the neural network is built here. Basically it is a vector of config objects.
+    std::vector<config> nn_architecture{layer1, layer2, layer3, layer5};
 
-    Preprocess<double> preprocess;
-    preprocess.setProcess([](double x){return x*x;}, -50., 50., 1.);
+    //Here are the bounds of the MinMaxScaler which scales the data as well as the targets separately.
+    double train_min = -500.001;
+    double train_max = 500.001;
+    double train_resolution = 1;
+    double val_min = -1000.001;
+    double val_max = 1000.001;
+    double val_resolution = 0.5;
+    double test_min = -1000.001;
+    double test_max = 1000.001;
+    double test_resolution = 0.5;
 
-    int milestone = 250;
+    //Here are the hyperparameters one can play with.
+    int milestone = 400;
     double gamma = 1.5;
-    int num_epoch = 2500;
-    double learning_rate = 0.1;
-    int batch_size = 10;
-    train_out<double> train_output =  train<double>(preprocess.data_scaled(), preprocess.target_scaled(), num_epoch, learning_rate, batch_size, nn_architecture, gamma, milestone);
+    int num_epoch = 2000;
+    double learning_rate = 0.15;
+    int batch_size = 16;
+    int val_frequency = 1;
 
-    cost_history_to_file("cost_square_try.txt", train_output.cost_history);
+    //The target function and the training data is defined through the Preprocess class and its members.
+    //The setProcess() member function awaits the target function, the bounds of the trainin interval and a resolution to sample it.
+    Preprocess<double> preprocess;
+    preprocess.setProcess([](double x){return x*x;}, train_min, train_max, train_resolution);
 
-    Preprocess<double>::Dataset test_dataset = preprocess.generate_points(0., 100., 1.);
+    //Here one can add Gaussian noise
+    double mu_data = 0.;
+    double sigma_data = 1.;
+    preprocess.dataset.data = addGaussianNoise<double>(preprocess.dataset.data, mu_data, sigma_data);
 
+    double mu_target = 0.;
+    double sigma_target = 5.;
+    preprocess.dataset.target = addGaussianNoise<double>(preprocess.dataset.target, mu_target, sigma_target);
+
+    //The scaled dataset is avaliable through the data_scaled() and target_scaled() member functions.
+    //They are put here into a Dataset struct.
+
+    Preprocess<double>::Dataset train_dataset;
+    train_dataset.data = preprocess.data_scaled(); train_dataset.target = preprocess.target_scaled();
+
+    //The validation and the test dataset can also be generated with the help of the same Preprocess object.
+    //The data is generated similarly to the train data with the generate_points() member function. The output is the Dataset struct.
+    Preprocess<double>::Dataset val_dataset = preprocess.generate_points(val_min, val_max, val_resolution);
+
+    Preprocess<double>::Dataset test_dataset = preprocess.generate_points(test_min, test_max, test_resolution);
+
+    //The training itself happens here. The train() function requires the train and validation data, the architecture and the hyperparameters to run.
+    //The get_bounds() member function is used to carry the scaling parameters for the validation.
+    //The validation data is accessible from their respective Dataset struct through the data and target elements.
+    train_out<double> train_output =  train<double>(train_dataset.data, train_dataset.target, num_epoch, learning_rate, batch_size, nn_architecture, 
+                                                    val_dataset.data, val_dataset.target, preprocess.get_bounds(), gamma, milestone, val_frequency);
+
+    //The loss values are written out in a text file here.
+    cost_history_to_file("cost_square_3.txt", train_output.cost_history, train_output.val_cost_history, val_frequency);
+
+    //Here happens the prediction on the test dataset. The test dataset is accessible in the same way as the validation dataset.
     std::vector<std::vector<double>> predictions = predict<double>(test_dataset.data, train_output.network_params, nn_architecture, preprocess.get_bounds());
 
-    results_to_file<double>("results_square_try.txt", test_dataset.data, test_dataset.target, predictions);
-    
-    /*
-    int k = 5;
-    std::vector<double> prediction = point_predict(preprocess.dataset.data[k], train_output.network_params, nn_architecture, preprocess.get_bounds());
-    std::vector<double> GT{preprocess.dataset.target[k]};
-    std::cout << preprocess.dataset.data[k][0] << " " << preprocess.dataset.target[k] << " " << prediction[0] << " " << RMSE(prediction, GT) << std::endl;*/
-
+    //Finally, the test data points, ground truth and prediction values are written out into another text file.
+    results_to_file<double>("results_square_3.txt", test_dataset.data, test_dataset.target, predictions);
 
     return 0;
 }
