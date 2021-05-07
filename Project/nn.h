@@ -617,9 +617,10 @@ void cost_history_to_file(std::string const& file_name, std::vector<T> const& co
 }
 //Perform the whole training process on a vector of datapoints and their target values.
 template<typename T>
-train_out<T> train(std::vector<std::vector<T>> const& train_data, std::vector<T> const& train_target, int const& num_epoch, T const& learning_rate, 
+train_out<T> train(std::vector<std::vector<T>>& train_data, std::vector<T>& train_target, int const& num_epoch, T const& learning_rate, 
                    int const& batch_size, std::vector<config> const& nn_architecture, std::vector<std::vector<T>> const& val_data, std::vector<T> val_target, 
-                   std::vector<T> const& bounds, double const& gamma = 1.5, int const& milestone = 1000, int const& val_frequency = 10)
+                   std::vector<T> const& bounds, double const& gamma = 1.5, int const& milestone = 1000, int const& val_frequency = 10, 
+                   bool add_data_noise = 0, bool add_target_noise = 0, T const& mu_data = 0., T const& sigma_data = 1., T const& mu_target = 0., T const& sigma_target = 1.)
 {
     std::vector<layer_weights<double>> network_params = init_network<double>(nn_architecture);
     train_step_out<T> train_step_output;
@@ -633,6 +634,15 @@ train_out<T> train(std::vector<std::vector<T>> const& train_data, std::vector<T>
     }
     for(int i = 0; i < num_epoch; i++)
     {
+        if(add_data_noise)
+        {
+            train_data = addGaussianNoise(train_data, mu_data, sigma_data, i);
+        }
+        if(add_target_noise)
+        {
+            train_target = addGaussianNoise(train_target, mu_target, sigma_target, i);
+        }
+
         T cost_epoch_mean = 0;
         int m = static_cast<int>(train_data.size()) / batch_size;
         if(m * batch_size != static_cast<int>(train_data.size()))
@@ -724,12 +734,13 @@ std::vector<T> MinMaxScaler(std::vector<T> const& data, T const& data_min, T con
 }
 
 template<typename T>
-std::vector<std::vector<T>> addGaussianNoise(std::vector<std::vector<T>>& data, T const& mu = 0., T const& sigma = 1.)
+std::vector<std::vector<T>> addGaussianNoise(std::vector<std::vector<T>>& data, T const& mu = 0., T const& sigma = 1., int const& seed = 0)
 {
     std::default_random_engine generator;
+    generator.seed(seed);
     std::normal_distribution<T> distribution(mu, sigma);
 
-    for(int i = 0; i < static_cast<int>(target.size()); i++)
+    for(int i = 0; i < static_cast<int>(data.size()); i++)
     {
         data[i][0] += distribution(generator);
     }
@@ -737,9 +748,10 @@ std::vector<std::vector<T>> addGaussianNoise(std::vector<std::vector<T>>& data, 
 }
 
 template<typename T>
-std::vector<T> addGaussianNoise(std::vector<T>& target, T const& mu = 0., T const& sigma = 1.)
+std::vector<T> addGaussianNoise(std::vector<T>& target, T const& mu = 0., T const& sigma = 1., int const& seed = 0)
 {
     std::default_random_engine generator;
+    generator.seed(seed);
     std::normal_distribution<T> distribution(mu, sigma);
 
     for(int i = 0; i < static_cast<int>(target.size()); i++)
